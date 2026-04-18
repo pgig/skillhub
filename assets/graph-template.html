@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红楼梦人物关系图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            color: #e8d5b7;
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .header p {
+            color: #a0a0a0;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        #chart-container {
+            flex: 1;
+            width: 100%;
+        }
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: #e8d5b7;
+            font-size: 12px;
+            max-width: 250px;
+            border: 1px solid rgba(232, 213, 183, 0.2);
+        }
+        .info-panel h4 {
+            margin-bottom: 8px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>红楼梦人物关系图</h1>
+            <p>四大家族 · 金陵十二钗 · 千丝万缕</p>
+        </div>
+        <div id="chart-container"></div>
+    </div>
+
+    <div class="info-panel">
+        <h4>操作说明</h4>
+        <p>🖱️ 滚轮：缩放图表</p>
+        <p>✋ 拖拽：移动视图</p>
+        <p>👆 点击：查看人物详情</p>
+        <p>📍 拖拽节点：调整布局</p>
+    </div>
+
+    <script>
+        // 人物关系数据 - 将被替换
+        const graphData = {{GRAPH_DATA}};
+
+        // 初始化图表
+        const chartDom = document.getElementById('chart-container');
+        const myChart = echarts.init(chartDom);
+
+        // 定义颜色方案 - 古风配色
+        const colors = {
+            0: '#c23531', // 金陵十二钗 - 朱砂红
+            1: '#2f4554', // 贾府核心 - 黛蓝
+            2: '#61a0a8', // 贾府男子 - 青碧
+            3: '#d48265', // 薛府 - 赭石
+            4: '#91c7ae'  // 丫鬟侍从 - 竹青
+        };
+
+        const categoryNames = {
+            0: '金陵十二钗',
+            1: '贾府核心',
+            2: '贾府男子',
+            3: '薛府',
+            4: '丫鬟侍从'
+        };
+
+        // 转换数据为ECharts格式
+        const categories = Object.keys(categoryNames).map(key => ({
+            name: categoryNames[key]
+        }));
+
+        const nodes = graphData.characters.map(char => ({
+            id: char.id,
+            name: char.name,
+            symbolSize: char.category === 0 ? 50 : 40,
+            value: char.name,
+            category: char.category,
+            label: {
+                show: true,
+                fontSize: char.category === 0 ? 14 : 12,
+                color: '#fff',
+                fontWeight: char.category === 0 ? 'bold' : 'normal'
+            },
+            itemStyle: {
+                color: colors[char.category] || '#999'
+            }
+        }));
+
+        const links = graphData.relationships.map(rel => ({
+            source: rel.source,
+            target: rel.target,
+            value: rel.type,
+            label: {
+                show: true,
+                formatter: rel.type,
+                fontSize: 10,
+                color: '#ccc'
+            },
+            lineStyle: {
+                curveness: 0.2,
+                color: '#666',
+                width: 1.5
+            }
+        }));
+
+        const option = {
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    if (params.dataType === 'node') {
+                        return `<div style="padding: 10px;">
+                            <strong style="color: #e8d5b7; font-size: 16px;">${params.name}</strong>
+                            <br/><span style="color: #91c7ae;">${categoryNames[params.data.category]}</span>
+                        </div>`;
+                    } else {
+                        return `<div style="padding: 10px;">
+                            <span style="color: #d48265;">${params.data.source}</span>
+                            <span style="color: #999;"> → </span>
+                            <span style="color: #d48265;">${params.data.target}</span>
+                            <br/><strong style="color: #e8d5b7;">${params.data.value}</strong>
+                        </div>`;
+                    }
+                },
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                borderColor: '#e8d5b7',
+                borderWidth: 1,
+                textStyle: {
+                    color: '#fff'
+                }
+            },
+            legend: {
+                data: Object.values(categoryNames),
+                top: 10,
+                left: 20,
+                textStyle: {
+                    color: '#e8d5b7',
+                    fontSize: 12
+                },
+                itemGap: 15
+            },
+            series: [
+                {
+                    type: 'graph',
+                    layout: 'force',
+                    data: nodes,
+                    links: links,
+                    categories: categories,
+                    roam: true,
+                    draggable: true,
+                    focusNodeAdjacency: true,
+                    force: {
+                        repulsion: 800,
+                        gravity: 0.1,
+                        edgeLength: 150,
+                        layoutAnimation: true
+                    },
+                    emphasis: {
+                        focus: 'adjacency',
+                        lineStyle: {
+                            width: 3,
+                            color: '#e8d5b7'
+                        },
+                        label: {
+                            fontSize: 16,
+                            fontWeight: 'bold'
+                        }
+                    },
+                    lineStyle: {
+                        color: 'source',
+                        curveness: 0.3,
+                        opacity: 0.7
+                    },
+                    edgeLabel: {
+                        fontSize: 10,
+                        color: '#aaa'
+                    },
+                    label: {
+                        position: 'bottom',
+                        distance: 5
+                    }
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+
+        // 响应式
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+
+        // 点击事件
+        myChart.on('click', function(params) {
+            if (params.dataType === 'node') {
+                console.log('点击了人物：', params.name);
+            }
+        });
+    </script>
+</body>
+</html>
